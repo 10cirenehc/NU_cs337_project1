@@ -124,16 +124,18 @@ class Summarize(Preprocessor):
             tmp = list(set(tmp))
             item[self.name] = []
             # remove part of names
-            for i in tmp:
+            for idi, i in enumerate(tmp):
                 flag = False
-                for j in tmp:
-                    if i == j:
+                for idj, j in enumerate(tmp):
+                    if idi == idj: # fix a bug: must use idi==idj, not i == j
                         continue
-                    if j[1].startswith(i[1]) or j[1].endswith(i[1]):
+                    if (j[1].startswith(i[1]) or j[1].endswith(i[1])) and i[1]!=j[1]:
                         flag = True
                         break
                 if not flag:
                     item[self.name].append(i)
+            if not item[self.name]:
+                item[self.name] = item['AhoCorasickAutomaton']
             result.append(item)
         return result
 
