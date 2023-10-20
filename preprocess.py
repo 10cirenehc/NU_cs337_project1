@@ -20,7 +20,8 @@ class WordsMatch(Preprocessor):
     def __init__(self, words=None, name: Optional[str] = None):
         super().__init__("WordsMatch" if name is None else name)
         if words is None:
-            words = ["win", "won", "wins", "winner", 'get', 'got', 'gets', 'getting', 'gotten']
+            words = ["win", "won", "wins", "winner", 'get', 'got', 'gets', 'getting', 'gotten',
+                     'take', 'took', 'takes', 'taken']
         self.words = words
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -28,8 +29,11 @@ class WordsMatch(Preprocessor):
         for item in tqdm(data):
             tmp = []
             for word in self.words:
-                if word in item['text'].lower():
-                    tmp.append(word)
+                pos = item['text'].lower().find(word)
+                if pos != -1:
+                    if pos != 0 and item['text'][pos - 1].isalpha():
+                        continue
+                    tmp.append((pos, word))
             if not tmp:
                 continue
             item[self.name] = tmp
@@ -77,10 +81,15 @@ class AhoCorasickAutomaton(Preprocessor):
                 self.automaton = ahocorasick.Automaton()
                 data = pd.read_csv(self.path, sep='\t')
                 print("Adding words to automaton")
-                for item in tqdm(data['primaryName']):
+                for id, item in enumerate(tqdm(data['primaryName'])):
                     if not isinstance(item, str):
                         continue
-                    if len(item) < 3:
+                    if item.find(' ') == -1:
+                        if data['birthYear'][id] == '\\N':
+                            continue
+                        if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
+                            continue
+                    if len(item) < 4:
                         # ignore short names
                         continue
                     # matching from the beginning of the word
@@ -107,6 +116,7 @@ class AhoCorasickAutomaton(Preprocessor):
             result.append(item)
         return result
 
+
 class Summarize(Preprocessor):
     def __init__(self, name: Optional[str] = None):
         super().__init__("Summarize" if name is None else name)
@@ -127,9 +137,9 @@ class Summarize(Preprocessor):
             for idi, i in enumerate(tmp):
                 flag = False
                 for idj, j in enumerate(tmp):
-                    if idi == idj: # fix a bug: must use idi==idj, not i == j
+                    if idi == idj:  # fix a bug: must use idi==idj, not i == j
                         continue
-                    if (j[1].startswith(i[1]) or j[1].endswith(i[1])) and i[1]!=j[1]:
+                    if (j[1].startswith(i[1]) or j[1].endswith(i[1])) and i[1] != j[1]:
                         flag = True
                         break
                 if not flag:
@@ -138,6 +148,18 @@ class Summarize(Preprocessor):
                 item[self.name] = item['AhoCorasickAutomaton']
             result.append(item)
         return result
+
+
+class Duplicate(Preprocessor):
+    def __init__(self, name: Optional[str] = None):
+        super().__init__("Duplicate" if name is None else name)
+
+    def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        ans = dict()
+        for i in data:
+            ans[i['text']] = i
+        return list(ans.values())
+
 
 class PreprocessPipe:
     def __init__(self):
