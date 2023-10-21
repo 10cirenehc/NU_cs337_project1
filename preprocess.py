@@ -81,19 +81,35 @@ class AhoCorasickAutomaton(Preprocessor):
                 self.automaton = ahocorasick.Automaton()
                 data = pd.read_csv(self.path, sep='\t')
                 print("Adding words to automaton")
-                for id, item in enumerate(tqdm(data['primaryName'])):
-                    if not isinstance(item, str):
-                        continue
-                    if item.find(' ') == -1:
-                        if data['birthYear'][id] == '\\N':
+                if 'primaryName' in data.columns:
+                    for id, item in enumerate(tqdm(data['primaryName'])):
+                        if not isinstance(item, str):
                             continue
-                        if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
+                        if item.find(' ') == -1:
+                            if data['birthYear'][id] == '\\N':
+                                continue
+                            if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
+                                continue
+                        if len(item) < 4:
+                            # ignore short names
                             continue
-                    if len(item) < 4:
-                        # ignore short names
-                        continue
-                    # matching from the beginning of the word
-                    self.automaton.add_word(f" {str(item).lower()}", item)
+                        # matching from the beginning of the word
+                        self.automaton.add_word(f" {str(item).lower()}", item)
+                else:
+                    for id, item in enumerate(tqdm(data['primaryTitle'])):
+                        if not isinstance(item, str):
+                            continue
+                        if not (data['titleType'][id]=='movie' or data['titleType'][id].startswith('tv')):
+                            continue
+                        if data['startYear'][id] == '\\N':
+                            continue
+                        if int(data['startYear'][id]) <= 2008 or int(data['startYear'][id]) > 2013:
+                            continue
+                        if len(item) < 5:
+                            # ignore short names
+                            continue
+                        # matching from the beginning of the word
+                        self.automaton.add_word(f" {str(item).lower()}", item)
                 print("Making automaton")
                 self.automaton.make_automaton()
                 pickle.dump(self.automaton, open(self.path.with_suffix(".pkl"), "wb"))
@@ -118,17 +134,15 @@ class AhoCorasickAutomaton(Preprocessor):
 
 
 class Summarize(Preprocessor):
-    def __init__(self, name: Optional[str] = None, nltk_name: str = "NLTK", acautomaton_name: str = "AhoCorasickAutomaton"):
+    def __init__(self, name: Optional[str] = None):
         super().__init__("Summarize" if name is None else name)
-        self.nltk_name = nltk_name
-        self.acautomaton_name = acautomaton_name
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         result = []
         for item in tqdm(data):
             tmp = []
-            for i in item[self.nltk_name]:
-                for j in item[self.acautomaton_name]:
+            for i in item['NLTK']:
+                for j in item['AhoCorasickAutomaton']:
                     if i in j[1]:
                         tmp.append(j)
             if not tmp:
@@ -147,7 +161,7 @@ class Summarize(Preprocessor):
                 if not flag:
                     item[self.name].append(i)
             if not item[self.name]:
-                item[self.name] = item[self.acautomaton_name]
+                item[self.name] = item['AhoCorasickAutomaton']
             result.append(item)
         return result
 
