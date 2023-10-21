@@ -50,14 +50,14 @@ if __name__ == '__main__':
     pipe.add_processor(Duplicate()) # remove duplicate sentences
     # pipe.add_processor(WordsMatch())
     # pipe.add_processor(WordsMatch(words=['best'])) # remove sentences without 'best'
-    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", name="movie")) # remove sentences without movie name
+    # pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", name="movie")) # remove sentences without movie name
     pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", name="name")) # remove sentences without actor name
     pipe.add_processor(NLTK(proc_num=12)) # remove sentences without 'NNP', find actors' name
     pipe.add_processor(Summarize(acautomaton_name='name')) # merge actors' name (NLTK and AhoCorasickAutomaton)
     data = pipe.process(data)
     for i in data:
         i['name'] = i.pop('Summarize')
-    json.dump(data, open("data/gg2013_actor_movie.json", "w"), indent=4)
+    json.dump(data, open("data/gg2013_actor.json", "w"), indent=4)
     # for i in data[:30]:
     #     print(i['text'], i['AhoCorasickAutomaton'])
     # print(get_hosts(data))

@@ -134,15 +134,18 @@ class AhoCorasickAutomaton(Preprocessor):
 
 
 class Summarize(Preprocessor):
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: Optional[str] = None, nltk_name: str = 'NLTK', acautomaton_name: str = 'AhoCorasickAutomaton'):
         super().__init__("Summarize" if name is None else name)
+        self.nltk_name = nltk_name
+        self.acautomaton_name = acautomaton_name
+
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         result = []
         for item in tqdm(data):
             tmp = []
-            for i in item['NLTK']:
-                for j in item['AhoCorasickAutomaton']:
+            for i in item[self.nltk_name]:
+                for j in item[self.acautomaton_name]:
                     if i in j[1]:
                         tmp.append(j)
             if not tmp:
@@ -161,7 +164,7 @@ class Summarize(Preprocessor):
                 if not flag:
                     item[self.name].append(i)
             if not item[self.name]:
-                item[self.name] = item['AhoCorasickAutomaton']
+                item[self.name] = item[self.acautomaton_name]
             result.append(item)
         return result
 
