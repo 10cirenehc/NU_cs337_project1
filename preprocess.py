@@ -17,12 +17,13 @@ class Preprocessor:
 
 
 class WordsMatch(Preprocessor):
-    def __init__(self, words=None, name: Optional[str] = None):
+    def __init__(self, words=None, name: Optional[str] = None, remove: bool = True):
         super().__init__("WordsMatch" if name is None else name)
         if words is None:
             words = ["win", "won", "wins", "winner", 'get', 'got', 'gets', 'getting', 'gotten',
                      'take', 'took', 'takes', 'taken']
         self.words = words
+        self.remove = remove
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         result = []
@@ -34,7 +35,7 @@ class WordsMatch(Preprocessor):
                     if pos != 0 and item['text'][pos - 1].isalpha():
                         continue
                     tmp.append((pos, word))
-            if not tmp:
+            if not tmp and self.remove:
                 continue
             item[self.name] = tmp
             result.append(item)
@@ -42,9 +43,10 @@ class WordsMatch(Preprocessor):
 
 
 class NLTK(Preprocessor):
-    def __init__(self, name: Optional[str] = None, proc_num: int = 8):
+    def __init__(self, name: Optional[str] = None, proc_num: int = 8, remove: bool = True):
         super().__init__("NLTK" if name is None else name)
         self.proc_num = proc_num
+        self.remove = remove
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         pool = Pool(self.proc_num)
@@ -62,7 +64,7 @@ class NLTK(Preprocessor):
         for item in tqdm(data):
             tokens = nltk.word_tokenize(item['text'])
             tmp = [i[0] for i in nltk.pos_tag(tokens) if i[1] == 'NNP']
-            if not tmp:
+            if not tmp and self.remove:
                 continue
             item[self.name] = tmp
             result.append(item)
@@ -70,7 +72,7 @@ class NLTK(Preprocessor):
 
 
 class AhoCorasickAutomaton(Preprocessor):
-    def __init__(self, file_path: str, name: Optional[str] = None):
+    def __init__(self, file_path: str, name: Optional[str] = None, remove: bool = True):
         self.path = Path(file_path)
         if self.path.exists():
             if self.path.suffix == ".pkl":
@@ -88,8 +90,8 @@ class AhoCorasickAutomaton(Preprocessor):
                         if item.find(' ') == -1:
                             if data['birthYear'][id] == '\\N':
                                 continue
-                            if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
-                                continue
+                            # if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
+                            #     continue
                         if len(item) < 4:
                             # ignore short names
                             continue
@@ -103,8 +105,8 @@ class AhoCorasickAutomaton(Preprocessor):
                             continue
                         if data['startYear'][id] == '\\N':
                             continue
-                        if int(data['startYear'][id]) <= 2008 or int(data['startYear'][id]) > 2013:
-                            continue
+                        # if int(data['startYear'][id]) <= 2008 or int(data['startYear'][id]) > 2013:
+                        #     continue
                         if len(item) < 5:
                             # ignore short names
                             continue
@@ -116,6 +118,7 @@ class AhoCorasickAutomaton(Preprocessor):
                 print(f"Automaton saved to pickle file:{self.path.with_suffix('.pkl')}")
             else:
                 raise "File type not supported"
+        self.remove = remove
         super().__init__("AhoCorasickAutomaton" if name is None else name)
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -126,7 +129,7 @@ class AhoCorasickAutomaton(Preprocessor):
             # add space to the beginning to match from the beginning of the word
             for each in self.automaton.iter(f" {item['text'].lower()}"):
                 tmp.append(each)
-            if not tmp:
+            if not tmp and self.remove:
                 continue
             item[self.name] = tmp
             result.append(item)
@@ -134,10 +137,12 @@ class AhoCorasickAutomaton(Preprocessor):
 
 
 class Summarize(Preprocessor):
-    def __init__(self, name: Optional[str] = None, nltk_name: str = 'NLTK', acautomaton_name: str = 'AhoCorasickAutomaton'):
+    def __init__(self, name: Optional[str] = None, nltk_name: str = 'NLTK', acautomaton_name: str = 'AhoCorasickAutomaton',
+                 remove: bool = True):
         super().__init__("Summarize" if name is None else name)
         self.nltk_name = nltk_name
         self.acautomaton_name = acautomaton_name
+        self.remove = remove
 
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -148,7 +153,7 @@ class Summarize(Preprocessor):
                 for j in item[self.acautomaton_name]:
                     if i in j[1]:
                         tmp.append(j)
-            if not tmp:
+            if not tmp and self.remove:
                 continue
             tmp = list(set(tmp))
             item[self.name] = []
