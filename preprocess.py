@@ -7,6 +7,7 @@ import pickle
 from tqdm import tqdm
 import nltk
 import pandas as pd
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 
 class Preprocessor:
@@ -102,11 +103,11 @@ class AhoCorasickAutomaton(Preprocessor):
                     for id, item in enumerate(tqdm(data['primaryTitle'])):
                         if not isinstance(item, str):
                             continue
-                        if not (data['titleType'][id]=='movie' or data['titleType'][id].startswith('tv')):
+                        if not (data['titleType'][id] == 'movie' or data['titleType'][id].startswith('tv')):
                             continue
                         if data['startYear'][id] == '\\N':
                             continue
-                        if int(data['startYear'][id]) <= year-3 or int(data['startYear'][id]) > year:
+                        if int(data['startYear'][id]) <= year - 3 or int(data['startYear'][id]) > year:
                             continue
                         if len(item) < 5:
                             # ignore short names
@@ -138,13 +139,13 @@ class AhoCorasickAutomaton(Preprocessor):
 
 
 class Summarize(Preprocessor):
-    def __init__(self, name: Optional[str] = None, nltk_name: str = 'NLTK', acautomaton_name: str = 'AhoCorasickAutomaton',
+    def __init__(self, name: Optional[str] = None, nltk_name: str = 'NLTK',
+                 acautomaton_name: str = 'AhoCorasickAutomaton',
                  remove: bool = True):
         super().__init__("Summarize" if name is None else name)
         self.nltk_name = nltk_name
         self.acautomaton_name = acautomaton_name
         self.remove = remove
-
 
     def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         result = []
@@ -185,6 +186,7 @@ class Duplicate(Preprocessor):
             ans[i['text']] = i
         return list(ans.values())
 
+
 class ReMatch(Preprocessor):
     def __init__(self, name: Optional[str] = None, remove: bool = True, exps=None):
         super().__init__("ReMatch" if name is None else name)
@@ -204,6 +206,21 @@ class ReMatch(Preprocessor):
             item[self.name] = tmp
             result.append(item)
             # print(item['text'])
+        return result
+
+
+class Sentiment(NLTK):
+    def __init__(self, name: Optional[str] = None, proc_num: int = 8):
+        super().__init__("Sentiment" if name is None else name, proc_num=proc_num, remove=False)
+
+    def _process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        print("Processing data with NLTK")
+        analyzer = SentimentIntensityAnalyzer
+        result = []
+        for item in tqdm(data):
+            score = analyzer.polarity_scores(item['text'])
+            item[self.name] = score
+            result.append(item)
         return result
 
 
