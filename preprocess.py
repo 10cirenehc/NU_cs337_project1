@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import ahocorasick
@@ -72,7 +73,7 @@ class NLTK(Preprocessor):
 
 
 class AhoCorasickAutomaton(Preprocessor):
-    def __init__(self, file_path: str, name: Optional[str] = None, remove: bool = True):
+    def __init__(self, file_path: str, name: Optional[str] = None, remove: bool = True, year: int = 2013):
         self.path = Path(file_path)
         if self.path.exists():
             if self.path.suffix == ".pkl":
@@ -90,8 +91,8 @@ class AhoCorasickAutomaton(Preprocessor):
                         if item.find(' ') == -1:
                             if data['birthYear'][id] == '\\N':
                                 continue
-                            # if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= 2013:
-                            #     continue
+                            if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= year:
+                                continue
                         if len(item) < 4:
                             # ignore short names
                             continue
@@ -105,8 +106,8 @@ class AhoCorasickAutomaton(Preprocessor):
                             continue
                         if data['startYear'][id] == '\\N':
                             continue
-                        # if int(data['startYear'][id]) <= 2008 or int(data['startYear'][id]) > 2013:
-                        #     continue
+                        if int(data['startYear'][id]) <= year-3 or int(data['startYear'][id]) > year:
+                            continue
                         if len(item) < 5:
                             # ignore short names
                             continue
@@ -183,6 +184,27 @@ class Duplicate(Preprocessor):
         for i in data:
             ans[i['text']] = i
         return list(ans.values())
+
+class ReMatch(Preprocessor):
+    def __init__(self, name: Optional[str] = None, remove: bool = True, exps=None):
+        super().__init__("ReMatch" if name is None else name)
+        if exps is None:
+            exps = []
+        self.exps = exps
+        self.remove = remove
+
+    def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        result = []
+        for item in tqdm(data):
+            tmp = []
+            for exp in self.exps:
+                tmp += re.findall(exp, item['text'])
+            if not tmp and self.remove:
+                continue
+            item[self.name] = tmp
+            result.append(item)
+            # print(item['text'])
+        return result
 
 
 class PreprocessPipe:
