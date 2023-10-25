@@ -9,6 +9,7 @@ import json
 
 
 def get_hosts(data: List[Dict[str, Any]]) -> List[str]:
+    data = json.load(open("data/gg2013.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=['host']))
@@ -36,14 +37,14 @@ def get_award_name(data: List[Dict[str, Any]]) -> List[str]:
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=[':', '-', '@']))
     pipe.add_processor(WordsMatch(words=['best']))
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.tsv", remove=False))
-    pipe.add_processor(AhoCorasickAutomaton("data/movie.tsv", remove=False, name='movie'))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False))
+    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", remove=False, name='movie'))
     pipe.add_processor(NLTK(proc_num=12, remove=False))
     pipe.add_processor(Summarize(remove=False, name="name"))
     pipe.add_processor(Award(remove=False, name="award"))
     data = pipe.process(data)
 
-    json.dump(data, open("data/award.json", "w"), indent=4)
+    # json.dump(data, open("data/award.json", "w"), indent=4)
 
 if __name__ == '__main__':
     get_award_name(json.load(open("data/gg2013.json", "r")))
