@@ -224,7 +224,7 @@ def main(grading):
 
 if __name__ == '__main__':
     # grading = ["hosts", "awards", "nominees", "presenters", "winner"]
-    grading = ["hosts"]
+    grading = ["hosts", "awards"]
     if len(sys.argv) > 1:
         newg = [g for g in grading if g in sys.argv]
         if len(newg) > 0:

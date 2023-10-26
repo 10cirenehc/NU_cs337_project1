@@ -9,7 +9,7 @@ import json
 
 
 def get_hosts(data: List[Dict[str, Any]]) -> List[str]:
-    data = json.load(open("data/gg2013.json", "r"))
+    # data = json.load(open("data/gg2013.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=['host']))

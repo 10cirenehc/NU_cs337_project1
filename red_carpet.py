@@ -32,9 +32,10 @@ def get_best_dressed(data: List[Dict[str, Any]]) -> tuple[dict[str, list[Any]], 
     ans['worst_dressed'] = [i[0] for i in vote[:2]]
     vote = sorted(vote, key=lambda x: x[1]['best_dressed'] + x[1]['worst_dressed'], reverse=True)
     ans['most_discussed'] = [i[0] for i in vote[:2]]
-    # vote = sorted(vote, key=lambda x: abs(x[1]['best_dressed'] - x[1]['worst_dressed']), reverse=True)
+    vote = vote[:10]
+    vote = sorted(vote, key=lambda x: abs(x[1]['best_dressed'] - x[1]['worst_dressed']))
     # vote =
-    # ans['most_controversial'] = [i[0] for i in vote[:2]]
+    ans['most_controversial'] = [i[0] for i in vote[:2]]
     return ans, data
 
 def get_user_photo(data: List[Dict[str, Any]], users: List[str]):
@@ -59,6 +60,8 @@ def get_user_photo(data: List[Dict[str, Any]], users: List[str]):
 
 if __name__ == '__main__':
     ans, data = get_best_dressed(json.load(open("data/gg2013.json", "r")))
+    print(ans)
+    exit(0)
     data = json.load(open("data/gg2013.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(ReMatch(exps=[r"https://t\.co/[a-zA-Z0-9]+"], name='photo'))
