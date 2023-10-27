@@ -3,11 +3,13 @@ import re
 
 from tqdm import tqdm
 
+from award_filter import Award
 from preprocess import PreprocessPipe, AhoCorasickAutomaton, NLTK, WordsMatch, Summarize, Duplicate
 import json
 
 
 def get_hosts(data: List[Dict[str, Any]]) -> List[str]:
+    # data = json.load(open("data/gg2013.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=['host']))
@@ -23,37 +25,39 @@ def get_hosts(data: List[Dict[str, Any]]) -> List[str]:
     host = sorted(hosts.items(), key=lambda x: x[1], reverse=True)
     return [i[0] for i in host[:2]]
 
+
+import re
+
+
+
+
+
 def get_award_name(data: List[Dict[str, Any]]) -> List[str]:
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
-    pipe.add_processor(WordsMatch())
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl"))
-    pipe.add_processor(NLTK(proc_num=12))
-    pipe.add_processor(Summarize())
+    pipe.add_processor(WordsMatch(words=[':', '-', '@']))
+    pipe.add_processor(WordsMatch(words=['best']))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False))
+    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", remove=False, name='movie'))
+    pipe.add_processor(NLTK(proc_num=12, remove=False))
+    pipe.add_processor(Summarize(remove=False, name="name"))
+    pipe.add_processor(Award(remove=False, name="award"))
     data = pipe.process(data)
-    # for i in data[:30]:
-    #     print(i['text'], i['Summarize'])
-    ca_set_awards = set()
-    for i in data:
-        sent_str = i['text'].lower()
-        match = re.search(r'(\S+)\s+awarded\s+to\s+(\S+)', sent_str)
-        if match:
-            ca_set_awards.add(match.group(0))
-    for i in ca_set_awards:
-        print(i)
 
+    # json.dump(data, open("data/award.json", "w"), indent=4)
 
 if __name__ == '__main__':
-
+    get_award_name(json.load(open("data/gg2013.json", "r")))
+    exit(0)
     data = json.load(open("data/gg2013.json", "r"))
     pipe = PreprocessPipe()
-    pipe.add_processor(Duplicate()) # remove duplicate sentences
+    pipe.add_processor(Duplicate())  # remove duplicate sentences
     # pipe.add_processor(WordsMatch())
     # pipe.add_processor(WordsMatch(words=['best'])) # remove sentences without 'best'
     # pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", name="movie")) # remove sentences without movie name
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", name="name")) # remove sentences without actor name
-    pipe.add_processor(NLTK(proc_num=12)) # remove sentences without 'NNP', find actors' name
-    pipe.add_processor(Summarize(acautomaton_name='name')) # merge actors' name (NLTK and AhoCorasickAutomaton)
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", name="name"))  # remove sentences without actor name
+    pipe.add_processor(NLTK(proc_num=12))  # remove sentences without 'NNP', find actors' name
+    pipe.add_processor(Summarize(acautomaton_name='name'))  # merge actors' name (NLTK and AhoCorasickAutomaton)
     data = pipe.process(data)
     for i in data:
         i['name'] = i.pop('Summarize')
@@ -83,8 +87,8 @@ if __name__ == '__main__':
     #     print(data[i]['text'], data[i]['Summarize'])
     # exit(0)
 
-        # print(data[i]['text'], data[i]['Summarize'], data[i]['NLTK'], data[i]['AhoCorasickAutomaton'])
-        # print(data[i]['text'])
+    # print(data[i]['text'], data[i]['Summarize'], data[i]['NLTK'], data[i]['AhoCorasickAutomaton'])
+    # print(data[i]['text'])
 
     # for i in data:
     #     if 'Best' not in i['text']:
@@ -95,15 +99,15 @@ if __name__ == '__main__':
     #         while not name[-1].isalpha():
     #             name = name[:-1]
 
-            # if name.lower().startswith('best director - motion picture'):
-            #     flag = False
-            #     print(name, i['Summarize'])
-            #     for k in i['Summarize']:
-            #         if k[1] in name:
-            #             flag = True
-            #             break
-            #     print(flag)
-            #     exit(0)
+    # if name.lower().startswith('best director - motion picture'):
+    #     flag = False
+    #     print(name, i['Summarize'])
+    #     for k in i['Summarize']:
+    #         if k[1] in name:
+    #             flag = True
+    #             break
+    #     print(flag)
+    #     exit(0)
     #         if name.count('-') > 1:
     #             continue
     #         if name.find('!') != -1 or name.find('?') != -1 or name.find('#') != -1:
