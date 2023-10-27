@@ -6,6 +6,9 @@ import pickle
 from tqdm import tqdm
 import nltk
 import pandas as pd
+from datetime import datetime, timezone
+from operator import itemgetter
+import numpy as np
 
 
 class Preprocessor:
@@ -131,6 +134,30 @@ class AhoCorasickAutomaton(Preprocessor):
             item[self.name] = tmp
             result.append(item)
         return result
+    
+class TimeSeries(Preprocessor):
+    def __init__(self, est_start_time:int, event_names:List(str), name: Optional[str] = None):
+        super().__init__("TimeSort" if name is None else name)
+        
+    def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # First sort all the Tweets by timestamp
+        print("Sorting data by timestamp")
+        tqdm(data.sort(key=itemgetter('timestamp_ms')))
+        
+        # calculate duration
+        duration = datetime.fromtimestamp(data[-1]['timestamp_ms'],tz = timezone.utc) - datetime.fromtimestamp(data[0]['timestamp_ms'], tz = timezone.utc)
+        minutes = round(duration.total_seconds()/60)
+        
+        self.event_names.append("total")
+        # create a dictionary to store the number of tweets for each event over time
+        freqs = dict.fromkeys(self.event_names, np.zeros(minutes))
+        
+        
+        
+        
+        # For each event, find the spike in the number of tweets
+        
+        
 
 
 class Summarize(Preprocessor):
