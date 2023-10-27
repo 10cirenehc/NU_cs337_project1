@@ -211,6 +211,19 @@ def get_award_name():
                         result.remove(i)
                 except:
                     pass
+    result = list(result)
+    tmp = []
+    for i in result:
+        flag = False
+        for j in result:
+            if i == j:
+                continue
+            if i in j:
+                flag = True
+                break
+        if not flag:
+            tmp.append(i)
+    result = tmp
     for i in result:
         print(i)
     print(len(result))
