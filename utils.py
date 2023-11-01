@@ -2,375 +2,123 @@ import regex as re
 import spacy
 from spacy import displacy
 from collections import Counter
+import nltk
+import numpy as np
+
 
 nlp = spacy.load("en_core_web_sm")
 
-person_words = ["role", "director", "actor", "actress", "directing"]
 
 
-award_regex_dict = {
-    
-    r'best\s+screenplay': "best screenplay - motion picture",
-    r'best\s+director' : "best director - motion picture",
-    r'(?=.*comedy\s+or\s+musical)best\s+(?:performance\s+by\s+an\s+)?actress\s+(?:in\s+)?(?:a\s+)?(?:television|tv)\s+series': "best performance by an actress in a television series - comedy or musical",
-    r'foreign\s+language\s+film' : "best foreign language film",
-    
-    r'(?=.*drama)best\s+(?:performance\s+by\s+an\s+)?actor\s+(?:in\s+)?(?:a\s+)?(?:television|tv)\s+series' : "best performance by an actor in a television series - drama",
-    
-}
 
-class Award:
+# award_regex_dict = {
+    
+#     r'best\s+screenplay': "best screenplay - motion picture",
+#     r'best\s+director' : "best director - motion picture",
+#     r'(?=.*comedy\s+or\s+musical)best\s+(?:performance\s+by\s+an\s+)?actress\s+(?:in\s+)?(?:a\s+)?(?:television|tv)\s+series': "best performance by an actress in a television series - comedy or musical",
+#     r'foreign\s+language\s+film' : "best foreign language film",
+    
+#     r'(?=.*drama)best\s+(?:performance\s+by\s+an\s+)?actor\s+(?:in\s+)?(?:a\s+)?(?:television|tv)\s+series' : "best performance by an actor in a television series - drama",
+    
+# }
+
+
+def extract_name(tweet):
+  one_word_names = ["madonna", "zendaya", "adele", "charo", "teller", "tiffany", "banksy", "lalaine", "iman", "prince", "shakira", "cheryl"]
+  if len(tweet["name"]) == 0:
+    return []
+  else: 
+    return  [name[1] for name in tweet["name"] if len(re.findall(r'\w+', name[1])) > 1 and name[1] not in one_word_names and not bool(re.search(r'\b' + re.escape("the") + r'\b',name[1],re.IGNORECASE))] 
+  
+def extract_movie(tweet, award):
+  if len(tweet["movie"]) == 0:
+    return []
+  else: 
+    return [movie[1] for movie in tweet["movie"] if not bool(re.search(r'\b' + re.escape(movie[1]) + r'\b',award.name,re.IGNORECASE))]
+
+class Award_Category:
     award_regex_dict = {}
+    person_words = ["role", "director", "actor", "actress", "directing"]
+
     
     def __init__(self, name: str):
-        self.name = name
+        self.name = name.lower()
+        self.entity_type = self.detectEntityTypeFromAwardName()
+        self.regex_string = self.regexStringFromAwardName()
+        Award_Category.award_regex_dict[self.regex_string] = self
         self.nominees = []
         self.presenters = []
         self.winner = None
-        self.entity_type = None
+        
+        self.affil_names = {}
+        self.affil_titles = {}
+        self.affil_names_broad = {}
+        self.affil_titles_broad = {}
+        self.hashtags = {}
+        self.hashtags_broad = {}
+        
+        self.startIndex = []
+        self.endIndex = []
+        self.tweet_indices = np.array([])
+        self.potentialNominees = {}
+        self.potentialPresenters = {}
+        self.potentialWinner = {}
+        self.simpleFrameCandidates = {"winner": {}, "nominees": {}, "presenters": {}}
+        
+    @classmethod
+    def sortRegexDict(cls):
+        cls.award_regex_dict = dict(sorted(cls.award_regex_dict.items(), key=lambda item: len(item[0]), reverse=True))
     
-def detectEntityTypeFromAwardName(name: str):
-    # Other types of names other than "best ___"
-    if not bool(re.search(r'\b' + re.escape("best") + r'\b'),name,re.IGNORECASE):
-        pass
-    else:
-        for word in person_words:
-            pattern = r'\b' + re.escape(word) + r'\b'
-            if bool(re.search(pattern, name, re.IGNORECASE)):
-                
-        pattern = r'\bbest\b\s+(\w+)'
-        match = re.search(pattern, name, re.IGNORECASE)
-        type_indicator = match.group(1)
-        
-        
+    def detectEntityTypeFromAwardName(self):
+        # Other types of names other than "best ___"
+        if not bool(re.search(r'\b' + re.escape("best") + r'\b',self.name,re.IGNORECASE)):
+            return "person"
+        else:
+            for word in Award_Category.person_words:
+                pattern = r'\b' + re.escape(word) + r'\b'
+                if bool(re.search(pattern, self.name, re.IGNORECASE)):
+                    return "person"
+            if bool(re.search(r'\b' + re.escape("song") + r'\b',self.name,re.IGNORECASE)):
+                return "movie"
+            else:
+                return "movie"
 
-def regexStringFromAwardName(name: str):
-    pass
+    def regexStringFromAwardName(self):
+        # make a case for keyword
+        # television
+        # or 
+        # award
+        regex_string = r''
+        optionals = ["performance", "motion", "series", "picture", "made", "role","mini-series", "feature"]
+        words = nltk.word_tokenize(self.name)
+        tagged = nltk.pos_tag(words)
+        if bool(re.search(r'\b' + re.escape("award") + r'\b',self.name,re.IGNORECASE)):
+            regex_string += re.escape(self.name.split("award")[0])
+            return regex_string
+            
+        skip = 0
+        for i in range(0, len(words)):
+            # keywords
+            if skip > 0:
+                skip -= 1
+                continue
+            if tagged[i][0] in optionals or tagged[i][1] == ":" or tagged[i][1] == "IN" or tagged[i][1] == "CC" or tagged[i][1] == "DT" or tagged[i][0] == ",":
+                continue
+            elif tagged[i][0] == ("television" or "tv"):
+                regex_string += r'(?=.*television|tv)'
+                continue
+            elif i < len(words) -2 and tagged[i+1][0] == ("or"):
+                if i < len(words) - 3 and tagged[i+2] == "motion" and tagged[i+3] == "picture":
+                  regex_string += r'(?=.*'+re.escape(tagged[i][0]) + r'|' + re.escape("motion picture") + r')'
+                  skip = 3
+                else:
+                  regex_string += r'(?=.*'+re.escape(tagged[i][0]) + r'|' + re.escape(tagged[i+2][0]) + r')'
+                  skip = 2
+                continue
+            else:
+                regex_string += r'(?=.*' + re.escape(tagged[i][0]) + r')'
+                continue
+            
+        return regex_string
 
-
-
-{
-  "hosts": [
-    "amy poehler",
-    "tina fey"
-  ],
-  "award_data": {
-    "best screenplay - motion picture": {
-      
-    "best director - motion picture": {
-      "nominees": [
-        "kathryn bigelow",
-        "ang lee",
-        "steven spielberg",
-        "quentin tarantino"
-      ],
-      "presenters": [
-        "halle berry"
-      ],
-      "winner": "ben affleck"
-    },
-    "best performance by an actress in a television series - comedy or musical": {
-      "nominees": [
-        "zooey deschanel",
-        "tina fey",
-        "julia louis-dreyfus",
-        "amy poehler"
-      ],
-      "presenters": [
-        "aziz ansari",
-        "jason bateman"
-      ],
-      "winner": "lena dunham"
-    },
-    "best foreign language film": {
-      "nominees": [
-        "the intouchables",
-        "kon tiki",
-        "a royal affair",
-        "rust and bone"
-      ],
-      "presenters": [
-        "arnold schwarzenegger",
-        "sylvester stallone"
-      ],
-      "winner": "amour"
-    },
-    "best performance by an actor in a supporting role in a motion picture": {
-      "nominees": [
-        "alan arkin",
-        "leonardo dicaprio",
-        "philip seymour hoffman",
-        "tommy lee jones"
-      ],
-      "presenters": [
-        "bradley cooper",
-        "kate hudson"
-      ],
-      "winner": "christoph waltz"
-    },
-    "best performance by an actress in a supporting role in a series, mini-series or motion picture made for television": {
-      "nominees": [
-        "hayden panettiere",
-        "archie panjabi",
-        "sarah paulson",
-        "sofia vergara"
-      ],
-      "presenters": [
-        "dennis quaid",
-        "kerry washington"
-      ],
-      "winner": "maggie smith"
-    },
-    "best motion picture - comedy or musical": {
-      "nominees": [
-        "the best exotic marigold hotel",
-        "moonrise kingdom",
-        "salmon fishing in the yemen",
-        "silver linings playbook"
-      ],
-      "presenters": [
-        "dustin hoffman"
-      ],
-      "winner": "les miserables"
-    },
-    "best performance by an actress in a motion picture - comedy or musical": {
-      "nominees": [
-        "emily blunt",
-        "judi dench",
-        "maggie smith",
-        "meryl streep"
-      ],
-      "presenters": [
-        "will ferrell",
-        "kristen wiig"
-      ],
-      "winner": "jennifer lawrence"
-    },
-    "best mini-series or motion picture made for television": {
-      "nominees": [
-        "the girl",
-        "hatfields & mccoys",
-        "the hour",
-        "political animals"
-      ],
-      "presenters": [
-        "don cheadle",
-        "eva longoria"
-      ],
-      "winner": "game change"
-    },
-    "best original score - motion picture": {
-      "nominees": [
-        "argo",
-        "anna karenina",
-        "cloud atlas",
-        "lincoln"
-      ],
-      "presenters": [
-        "jennifer lopez",
-        "jason statham"
-      ],
-      "winner": "life of pi"
-    },
-    "best performance by an actress in a television series - drama": {
-      "nominees": [
-        "connie britton",
-        "glenn close",
-        "michelle dockery",
-        "julianna margulies"
-      ],
-      "presenters": [
-        "nathan fillion",
-        "lea michele"
-      ],
-      "winner": "claire danes"
-    },
-    "best performance by an actress in a motion picture - drama": {
-      "nominees": [
-        "marion cotillard",
-        "sally field",
-        "helen mirren",
-        "naomi watts",
-        "rachel weisz"
-      ],
-      "presenters": [
-        "george clooney"
-      ],
-      "winner": "jessica chastain"
-    },
-    "cecil b. demille award": {
-      "nominees": [],
-      "presenters": [
-        "robert downey, jr."
-      ],
-      "winner": "jodie foster"
-    },
-    "best performance by an actor in a motion picture - comedy or musical": {
-      "nominees": [
-        "jack black",
-        "bradley cooper",
-        "ewan mcgregor",
-        "bill murray"
-      ],
-      "presenters": [
-        "jennifer garner"
-      ],
-      "winner": "hugh jackman"
-    },
-    "best motion picture - drama": {
-      "nominees": [
-        "django unchained",
-        "life of pi",
-        "lincoln",
-        "zero dark thirty"
-      ],
-      "presenters": [
-        "julia roberts"
-      ],
-      "winner": "argo"
-    },
-    "best performance by an actor in a supporting role in a series, mini-series or motion picture made for television": {
-      "nominees": [
-        "max greenfield",
-        "danny huston",
-        "mandy patinkin",
-        "eric stonestreet"
-      ],
-      "presenters": [
-        "kristen bell",
-        "john krasinski"
-      ],
-      "winner": "ed harris"
-    },
-    "best performance by an actress in a supporting role in a motion picture": {
-      "nominees": [
-        "amy adams",
-        "sally field",
-        "helen hunt",
-        "nicole kidman"
-      ],
-      "presenters": [
-        "megan fox",
-        "jonah hill"
-      ],
-      "winner": "anne hathaway"
-    },
-    "best television series - drama": {
-      "nominees": [
-        "boardwalk empire",
-        "breaking bad",
-        "downton abbey (masterpiece)",
-        "the newsroom"
-      ],
-      "presenters": [
-        "salma hayek",
-        "paul rudd"
-      ],
-      "winner": "homeland"
-    },
-    "best performance by an actor in a mini-series or motion picture made for television": {
-      "nominees": [
-        "benedict cumberbatch",
-        "woody harrelson",
-        "toby jones",
-        "clive owen"
-      ],
-      "presenters": [
-        "jessica alba",
-        "kiefer sutherland"
-      ],
-      "winner": "kevin costner"
-    },
-    "best performance by an actress in a mini-series or motion picture made for television": {
-      "nominees": [
-        "nicole kidman",
-        "jessica lange",
-        "sienna miller",
-        "sigourney weaver"
-      ],
-      "presenters": [
-        "don cheadle",
-        "eva longoria"
-      ],
-      "winner": "julianne moore"
-    },
-    "best animated feature film": {
-      "nominees": [
-        "frankenweenie",
-        "hotel transylvania",
-        "rise of the guardians",
-        "wreck-it ralph"
-      ],
-      "presenters": [
-        "sacha baron cohen"
-      ],
-      "winner": "brave"
-    },
-    "best original song - motion picture": {
-      "nominees": [
-        "act of valor",
-        "stand up guys",
-        "the hunger games",
-        "les miserables"
-      ],
-      "presenters": [
-        "jennifer lopez",
-        "jason statham"
-      ],
-      "winner": "skyfall"
-    },
-    "best performance by an actor in a motion picture - drama": {
-      "nominees": [
-        "richard gere",
-        "john hawkes",
-        "joaquin phoenix",
-        "denzel washington"
-      ],
-      "presenters": [
-        "george clooney"
-      ],
-      "winner": "daniel day-lewis"
-    },
-    "best television series - comedy or musical": {
-      "nominees": [
-        "the big bang theory",
-        "episodes",
-        "modern family",
-        "smash"
-      ],
-      "presenters": [
-        "jimmy fallon",
-        "jay leno"
-      ],
-      "winner": "girls"
-    },
-    "best performance by an actor in a television series - drama": {
-      "nominees": [
-        "steve buscemi",
-        "bryan cranston",
-        "jeff daniels",
-        "jon hamm"
-      ],
-      "presenters": [
-        "salma hayek",
-        "paul rudd"
-      ],
-      "winner": "damian lewis"
-    },
-    "best performance by an actor in a television series - comedy or musical": {
-      "nominees": [
-        "alec baldwin",
-        "louis c.k.",
-        "matt leblanc",
-        "jim parsons"
-      ],
-      "presenters": [
-        "lucy liu",
-        "debra messing"
-      ],
-      "winner": "don cheadle"
-    }
-  }
-}
-def 
 
