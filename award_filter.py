@@ -58,8 +58,13 @@ class Award(Preprocessor):
         ans += re.findall(r"presents the (.*?) to", text)
         ans += re.findall(r"presented the (.*?) to", text)
         ans += re.findall(r"present \w+ for (.*?)", text)
+        ans += re.findall(r"wins .*? for (.*?)", text)
+        ans += re.findall(r"wins (.*?)", text)
+        ans += re.findall(r"won .*? for (.*?)", text)
+        ans += re.findall(r"(.*?) is awarded to ", text)
+        ans += re.findall(r"the (.*?) award goes to", text)
         if ans:
-            return get_with_best(ans)
+            return get_with_best(list(set(ans)))
 
         # actor - ...
         if data['name']:
@@ -133,9 +138,8 @@ def get_award_name():
     names = [i.split(' ') for i in names]
     sorted_awards = get_sorted_ngram_frequencies(names)
     sorted_awards = filter_award_sorted(sorted_awards)
-    award_cand = remove_subset(sorted_awards)
-    sorted_awards = award_cand
-    sorted_awards = [i for i in sorted_awards if i[0].lower() == 'best']
+    sorted_awards = remove_subset(sorted_awards)
+    # sorted_awards = [i for i in sorted_awards if i[1].lower() != 'actor' and i[1].lower() != 'actress']
     ans = [dict(text=' '.join(i)) for i in sorted_awards]
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
@@ -224,10 +228,11 @@ def get_award_name():
         if not flag:
             tmp.append(i)
     result = tmp
+    result = [i for i in result if i.count(' ') >= 2 and len(i)>=17]
     for i in result:
         print(i)
     print(len(result))
-    return [i for i in result]
+    return result
 
 
 if __name__ == '__main__':

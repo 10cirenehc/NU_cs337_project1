@@ -207,11 +207,11 @@ def main(grading):
 
     scores = {y: {g: {t:0 for t in types} for g in grading} for y in years}
     for y in years:
+        getattr(gg_api, "pre_ceremony")(int(y))
         with open('data/gg%sanswers.json' % y, 'r') as f:
             answers = json.load(f)
 
         answers['awards'] = list(answers['award_data'].keys())
-
         for g in grading:
             if g in ['hosts', 'awards']:
                 scores[y][g]['spelling'], scores[y][g]['completeness'] = score_unstructured(y, answers, g)
@@ -224,7 +224,8 @@ def main(grading):
 
 if __name__ == '__main__':
     # grading = ["hosts", "awards", "nominees", "presenters", "winner"]
-    grading = ["hosts", "awards"]
+
+    grading = ["hosts", "awards", "winner",  "presenters", "nominees"]
     if len(sys.argv) > 1:
         newg = [g for g in grading if g in sys.argv]
         if len(newg) > 0:

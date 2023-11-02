@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
@@ -9,6 +10,17 @@ import nltk
 import pandas as pd
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+def calculate_cosine_similarity(text1, text2):
+    vectorizer = CountVectorizer()
+    corpus = [text1, text2]
+    vectors = vectorizer.fit_transform(corpus)
+    similarity = cosine_similarity(vectors)
+    return similarity[0][1]
 
 class Preprocessor:
     def __init__(self, name: str, requirements: Optional[List[str]] = None):
@@ -94,6 +106,10 @@ class AhoCorasickAutomaton(Preprocessor):
                                 continue
                             if data['deathYear'][id] != '\\N' and int(data['deathYear'][id]) <= year:
                                 continue
+                        if not isinstance(data['primaryProfession'][id], str) or data['primaryProfession'][id] == '\\N':
+                            continue
+                        if ('director' not in data['primaryProfession'][id] and 'actress' not in data['primaryProfession'][id] and 'actor' not in data['primaryProfession'][id]):
+                            continue
                         if len(item) < 4:
                             # ignore short names
                             continue
@@ -215,13 +231,39 @@ class Sentiment(NLTK):
 
     def _process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         print("Processing data with NLTK")
-        analyzer = SentimentIntensityAnalyzer
+        analyzer = SentimentIntensityAnalyzer()
         result = []
         for item in tqdm(data):
-            score = analyzer.polarity_scores(item['text'])
+            score = analyzer.polarity_scores(text=item['text'])
             item[self.name] = score
             result.append(item)
         return result
+
+class TrueAward(Preprocessor):
+    def __init__(self, name: Optional[str] = None, year: int = 2013):
+        super().__init__("TrueAward" if name is None else name)
+        with open(f'data/gg{year}answers.json', 'r') as f:
+            self.answers = json.load(f)['award_data'].keys()
+        self.answers = [i.lower() for i in self.answers]
+
+
+    def process(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        for item in tqdm(data):
+            item[self.name] = ""
+            if not item['award']:
+                continue
+            #calculate_cosine_similarity
+            best_score, best_name = 0, ""
+            for answer in self.answers:
+                for name in item['award']:
+                    score = calculate_cosine_similarity(answer, name.lower())
+                    if score > best_score:
+                        best_score = score
+                        best_name = answer
+            # print(best_score, best_name)
+            # if best_score > 0.8:
+            item[self.name] = best_name
+        return data
 
 
 class PreprocessPipe:
