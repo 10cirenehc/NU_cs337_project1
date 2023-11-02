@@ -1,0 +1,8 @@
+pandas
+pyahocorasick
+tqdm
+nltk
+spacy
+ftfy
+unidecode
+inflection
