@@ -28,13 +28,49 @@ def extract_name(tweet):
   if len(tweet["name"]) == 0:
     return []
   else: 
-    return  [name[1] for name in tweet["name"] if len(re.findall(r'\w+', name[1])) > 1 and name[1] not in one_word_names and not bool(re.search(r'\b' + re.escape("the") + r'\b',name[1],re.IGNORECASE))] 
-  
+    names = [name[1] for name in tweet["name"] if len(re.findall(r'\w+', name[1])) > 1 and name[1] not in one_word_names and not bool(re.search(r'\b' + re.escape("the") + r'\b',name[1],re.IGNORECASE))] 
+    names_merge = names.copy()
+    for s1 in names:
+        for s2 in names:
+            merged = False
+            if s1 != s2 and s1 in s2 and s1 in names_merge and s2 in names_merge:
+                # Merge s1 into s2 and remove s1 from merged_list
+                names_merge.remove(s1)
+                names_merge.remove(s2)
+                names_merge.append(s2.replace(s1, s1 + " " + s2))
+                merged = True
+            if merged:
+                break
+
+    # Remove duplicates from the merged list
+    return list(set(names_merge))
+    
 def extract_movie(tweet, award):
   if len(tweet["movie"]) == 0:
     return []
   else: 
-    return [movie[1] for movie in tweet["movie"] if not bool(re.search(r'\b' + re.escape(movie[1]) + r'\b',award.name,re.IGNORECASE))]
+    movies = [movie[1] for movie in tweet["movie"] if not bool(re.search(r'\b' + re.escape(movie[1]) + r'\b',award.name,re.IGNORECASE))]
+    movie_merge = movies.copy()
+    for s1 in movies:
+        for s2 in movies:
+            merged = False
+            if s1 != s2 and s1 in s2 and s1 in movie_merge and s2 in movie_merge:
+                # Merge s1 into s2 and remove s1 from merged_list
+                movie_merge.remove(s1)
+                movie_merge.remove(s2)
+                movie_merge.append(s2.replace(s1, s1 + " " + s2))
+                merged = True
+            if merged:
+                break
+
+    # Remove duplicates from the merged list
+    movies = list(set(movie_merge))
+    for movie in movies:
+        for name in tweet["name"]:
+            if movie in name[1] and movie in movies:
+                movies.remove(movie)
+                
+    return movies
 
 class Award_Category:
     award_regex_dict = {}
@@ -59,7 +95,7 @@ class Award_Category:
         
         self.startIndex = []
         self.endIndex = []
-        self.tweet_indices = np.array([])
+        self.tweet_indices = []
         self.potentialNominees = {}
         self.potentialPresenters = {}
         self.potentialWinner = {}

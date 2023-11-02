@@ -303,10 +303,9 @@ class FirstPass(Preprocessor):
                     minute_indices[curr_minute] = i
                     
             freqs["total"][curr_minute] += 1
-            if tweet['id'] == 290621553153036289:
-                print(tweet['text'])
+            
+            found = False
             for award_regex in Award_Category.award_regex_dict.keys():
-                found = False
                 if bool(re.search(award_regex, tweet['text'],re.IGNORECASE)):
                     found = True
                     names = []
@@ -339,9 +338,9 @@ class FirstPass(Preprocessor):
                             Award_Category.award_regex_dict[award_regex].hashtags[hashtag] = 1
                     
                     # Add index of tweet to award.tweet_indices
-                    np.append(Award_Category.award_regex_dict[award_regex].tweet_indices, i)
+                    Award_Category.award_regex_dict[award_regex].tweet_indices.append(i)
                     # Add a field to the data that stores the award name
-                    data[i]["award"] = Award_Category.award_regex_dict[award_regex].name
+                    data[i]["award"] = Award_Category.award_regex_dict[award_regex]
                     break
                 
             if found == False:
