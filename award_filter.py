@@ -143,7 +143,7 @@ def get_award_name(year):
     ans = [dict(text=' '.join(i)) for i in sorted_awards]
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False, name='name'))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False, name='name', year=year))
     ans = pipe.process(ans)
     for id in range(len(ans)):
         for j in ans[id]['name']:
