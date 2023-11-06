@@ -1,25 +1,3 @@
-{
-    "Top 3 Loved Actors": [
-        "adele",
-        "tina fey",
-        "anne hathaway"
-    ],
-    "Top 3 Hated Actors": [
-        "bill fu",
-        "jack black",
-        "game"
-    ],
-    "most_humiliated_actor_due_to_another_actor": "taylor swift was the most humiliated person in the award show because of adele",
-    "funniest jokes by": [
-        "amy poehler",
-        "tina fey"
-    ],
-    "Parties analysis": {
-        "Parties discussed": "Following parties were discussed Democrat, afterparty, Republican, ",
-        "The party with the highest mention count is": "Democrat",
-        "The party with the lowest mention count is": "Republican",
-        "The party with the highest average sentiment is": "afterparty",
-        "The party with the lowest average sentiment is": "Republican"
-    },
-    "most controversial speech by": "jodie foster"
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:a6e09dc1343c206e320c7ac5f1c3da94387855445da937336d48b6536839d0e1
+size 885

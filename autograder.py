@@ -207,7 +207,7 @@ def main(grading):
 
     scores = {y: {g: {t:0 for t in types} for g in grading} for y in years}
     for y in years:
-        getattr(gg_api, "pre_ceremony")(int(y))
+        # getattr(gg_api, "pre_ceremony")(int(y))
         with open('data/gg%sanswers.json' % y, 'r') as f:
             answers = json.load(f)
 
@@ -223,9 +223,9 @@ def main(grading):
     pprint(scores)
 
 if __name__ == '__main__':
-    # grading = ["hosts", "awards", "nominees", "presenters", "winner"]
+    grading = ["hosts", "awards", "nominees", "presenters", "winner"]
 
-    grading = ["hosts", "awards", "winner",  "presenters", "nominees"]
+    # grading = ["awards"]
     if len(sys.argv) > 1:
         newg = [g for g in grading if g in sys.argv]
         if len(newg) > 0:

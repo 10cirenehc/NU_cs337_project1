@@ -118,8 +118,8 @@ class Award(Preprocessor):
         return ans
 
 
-def get_award_name():
-    ori_data = json.load(open("data/gg2013.json", "r"))
+def get_award_name(year):
+    ori_data = json.load(open(f"data/gg{year}.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=[':', '-', '@']))
