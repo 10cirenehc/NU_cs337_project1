@@ -118,14 +118,14 @@ class Award(Preprocessor):
         return ans
 
 
-def get_award_name():
-    ori_data = json.load(open("data/gg2013.json", "r"))
+def get_award_name(year):
+    ori_data = json.load(open(f"data/gg{year}.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=[':', '-', '@']))
     pipe.add_processor(WordsMatch(words=['best']))
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False))
-    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", remove=False, name='movie'))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False, year=year))
+    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", remove=False, name='movie', year=year))
     pipe.add_processor(NLTK(proc_num=12, remove=False))
     pipe.add_processor(Summarize(remove=False, name="name"))
     pipe.add_processor(Award(remove=False, name="award"))
