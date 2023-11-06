@@ -4,7 +4,8 @@ from typing import List, Dict, Any, Tuple
 from preprocess import PreprocessPipe, Duplicate, WordsMatch, AhoCorasickAutomaton, NLTK, Summarize, ReMatch, Sentiment
 
 
-def get_red_carpet(data: List[Dict[str, Any]]) -> tuple[dict[str, list[Any]], list[dict[str, Any]]]:
+def get_red_carpet(year) -> tuple[dict[str, list[Any]], list[dict[str, Any]]]:
+    data = json.load(open(f"data/gg{year}.json", "r"))
     ans = dict()
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
@@ -58,7 +59,8 @@ def get_user_photo(data: List[Dict[str, Any]], users: List[str]):
     return ans, data
 
 
-def sentiment_analysis(data: List[Dict[str, Any]]):
+def sentiment_analysis(year):
+    data = json.load(open(f"data/gg{year}.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False))
@@ -92,7 +94,7 @@ def sentiment_analysis(data: List[Dict[str, Any]]):
 
 
 if __name__ == '__main__':
-    sentiment_analysis(json.load(open("data/gg2013.json", "r")))
+    # sentiment_analysis(json.load(open("data/gg2013.json", "r")))
     exit(0)
     ans, data = get_red_carpet(json.load(open("data/gg2013.json", "r")))
     print(ans)
