@@ -12,11 +12,11 @@ from eric import gg_api
 def get_hosts(year):
     '''Hosts is a list of one or more strings. Do NOT change the name
     of this function or what it returns.'''
-    data = json.load(open("data/gg2013.json", "r"))
+    data = json.load(open(f"data/gg{year}.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(WordsMatch(words=['host']))
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl"))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", year=year))
     pipe.add_processor(NLTK(proc_num=12))
     pipe.add_processor(Summarize())
     data = pipe.process(data)
@@ -32,7 +32,7 @@ def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
     from award_filter import get_award_name
-    return get_award_name()
+    return get_award_name(year)
 
 def get_nominees(year):
     '''Nominees is a dictionary with the hard coded award
@@ -82,20 +82,21 @@ def main():
     and then run gg_api.main(). This is the second thing the TA will
     run when grading. Do NOT change the name of this function or
     what it returns.'''
-    # pre_ceremony(2013)
+    year = int(input("Please input year"))
+    pre_ceremony(year)
     result = dict()
-    host = get_hosts(2013)
+    host = get_hosts(year)
     result['hosts'] = host
     print("Hosts: ", ', '.join(host))
-    awards = get_awards(2013)
+    awards = get_awards(year)
     print("Awards: ")
     for i in awards:
         print(i)
-    winner = get_winner(2013)
+    winner = get_winner(year)
     # print("Winner: ")
-    presenters = get_presenters(2013)
+    presenters = get_presenters(year)
     # print("Presenters: ")
-    nominees = get_nominees(2013)
+    nominees = get_nominees(year)
     # print("Nominees: ")
     result['award_data'] = dict()
     for i in winner:
@@ -103,7 +104,7 @@ def main():
         result['award_data'][i]['winner'] = winner[i]
         result['award_data'][i]['nominees'] = nominees[i]
         result['award_data'][i]['presenters'] = presenters[i]
-    json.dump(result, open("data/gg2013_ours.json", "w"), indent=4)
+    json.dump(result, open(f"data/gg{year}_ours.json", "w"), indent=4)
     for i, j in result['award_data'].items():
         print(i)
         print("Winner: ", j['winner'])
