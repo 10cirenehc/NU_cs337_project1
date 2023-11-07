@@ -4,8 +4,7 @@ from typing import List, Dict, Any, Tuple
 from preprocess import PreprocessPipe, Duplicate, WordsMatch, AhoCorasickAutomaton, NLTK, Summarize, ReMatch, Sentiment
 
 
-def get_red_carpet(year) -> tuple[dict[str, list[Any]], list[dict[str, Any]]]:
-    data = json.load(open(f"data/gg{year}.json", "r"))
+def get_red_carpet(data: List[Dict[str, Any]]) -> tuple[dict[str, list[Any]], list[dict[str, Any]]]:
     ans = dict()
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
@@ -59,12 +58,11 @@ def get_user_photo(data: List[Dict[str, Any]], users: List[str]):
     return ans, data
 
 
-def sentiment_analysis(year):
-    data = json.load(open(f"data/gg{year}.json", "r"))
+def sentiment_analysis(data: List[Dict[str, Any]]):
     pipe = PreprocessPipe()
     pipe.add_processor(Duplicate())
     pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=False))
-    pipe.add_processor(AhoCorasickAutomaton("data/movie.tsv", remove=False, name='movie'))
+    pipe.add_processor(AhoCorasickAutomaton("data/movie.pkl", remove=False, name='movie'))
     pipe.add_processor(NLTK(proc_num=12, remove=False))
     pipe.add_processor(Summarize(remove=False, name="name"))
     pipe.add_processor(Sentiment(proc_num=12, name="sentiment"))
@@ -88,23 +86,27 @@ def sentiment_analysis(year):
     movie = sorted(ans['movie'].items(), key=lambda x: x[1], reverse=True)
     result['pos_movie'] = [i[0] for i in movie[:2]]
     result['neg_movie'] = [i[0] for i in movie[-2:]]
-    print(result)
     return result
 
 
 
 if __name__ == '__main__':
-    # sentiment_analysis(json.load(open("data/gg2013.json", "r")))
-    exit(0)
-    ans, data = get_red_carpet(json.load(open("data/gg2013.json", "r")))
-    print(ans)
+    year = int(input("Please input year: "))
+    sentiment = sentiment_analysis(json.load(open(f"data/gg{year}.json", "r")))
+    # exit(0)
+    ans, data = get_red_carpet(json.load(open(f"data/gg{year}.json", "r")))
 
-    data = json.load(open("data/gg2013.json", "r"))
+    data = json.load(open(f"data/gg{year}.json", "r"))
     pipe = PreprocessPipe()
     pipe.add_processor(ReMatch(exps=[r"https://t\.co/[a-zA-Z0-9]+"], name='photo'))
-    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=True))
+    pipe.add_processor(AhoCorasickAutomaton("data/actors.pkl", remove=True, year=year))
     pipe.add_processor(NLTK(proc_num=12, remove=False))
     pipe.add_processor(Summarize(remove=False, name="name"))
+    
+
     for i, j in ans.items():
         _ans, _ = get_user_photo(data, j)
         print(i, _ans)
+        
+    print(sentiment)
+    print(ans)

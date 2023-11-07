@@ -60,6 +60,10 @@ def extract_name(tweet):
         names = [name[1] for name in tweet["name"] if
                  len(re.findall(r'\w+', name[1])) > 1 and name[1] not in one_word_names and
                  not bool(re.search(r'\b' + re.escape("the") + r'\b', name[1], re.IGNORECASE))]
+        for name in names:
+            if (name.lower() == "an actor" or name.lower() == "an actress" or name.lower().startswith("director")) and name in names:
+                names.remove(name)
+                
         names_merge = names.copy()
         for s1 in names:
             for s2 in names:
@@ -86,7 +90,7 @@ def extract_movie(tweet, award):
                                                                                           "thin", "because", "one",
               "how", "made", "happy", "better", "motion picture", "watching", "even", "more", "over", "looking", "look",
               "lol", "don't", "pic",
-              "man", "that", "red carpet", "tonight", "they", "got", "gol"]
+              "man", "that", "red carpet", "tonight", "they", "got", "gol", "best actor", "best actress", "the best"]
     year = datetime.fromtimestamp(tweet['timestamp_ms'] / 1000, tz=timezone.utc).year
     ignore.append(str(year))
     if len(tweet["movie"]) == 0:

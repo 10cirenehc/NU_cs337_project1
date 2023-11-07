@@ -22,9 +22,9 @@ nltk.download('stopwords')
 
 # In[375]:
 
-
+year = input("Please input year")
 pd.set_option('display.max_colwidth', None)
-tweet_dataset='gg2013.json/gg2013.json'
+tweet_dataset=f'../../data/gg{year}.json'
 df=pd.read_json(tweet_dataset)
 
 
@@ -81,7 +81,7 @@ print(top_best_bigrams)
 # In[380]:
 
 
-df_movie_actor=pd.read_json('gg2013_actor_movie.json')
+df_movie_actor=pd.read_json(f"../../eric/data/gg{year}_sorted_annotated.json")
 df_movie_actor
 
 
@@ -706,9 +706,6 @@ if name_counts:
 
 
 # In[ ]:
-
-
-
 
 
 # In[421]:

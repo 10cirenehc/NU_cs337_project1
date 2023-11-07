@@ -120,5 +120,6 @@ def init(year):
         i['movie'] = list(tmp)
         i['movie'] = [[0, k] for k in i['movie'] if len(k)>3]
     json.dump(data, open(f"eric/data/gg{year}_sorted_annotated.json", "w"), indent=4)
+    
     return
 

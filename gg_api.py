@@ -97,20 +97,26 @@ def main():
     what it returns.'''
     year = int(input("Please input year"))
     pre_ceremony(year)
+    
+    print("Finished pre-ceremony processing.")
     result = dict()
     host = get_hosts(year)
     result['hosts'] = host
-    print("Hosts: ", ', '.join(host))
     awards = get_awards(year)
-    print("Awards: ")
-    for i in awards:
-        print(i)
+    result['awards'] = awards
+    
     winner = get_winner(year)
     # print("Winner: ")
     presenters = get_presenters(year)
     # print("Presenters: ")
     nominees = get_nominees(year)
     # print("Nominees: ")
+    
+    print("Hosts: ", ', '.join(host))
+    print("Awards: ")
+    for i in awards:
+        print(i)
+        
     result['award_data'] = dict()
     for i in winner:
         result['award_data'][i] = dict()
